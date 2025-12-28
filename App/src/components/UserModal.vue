@@ -79,6 +79,18 @@
 <label for="landline">Landline</label>
 <input id="landline" v-model="formData.landline" type="tel" placeholder="e.g. +25420123456" />
 </div>
+<div class="form-group">
+<label for="mobile">Mobile *</label>
+<input id="mobile" v-model="formData.mobile" type="tel" required placeholder="e.g. +254712345678" />
+</div>
+<div class="form-group">
+<label for="whatsapp">WhatsApp</label>
+<input id="whatsapp" v-model="formData.whatsapp" type="tel" placeholder="e.g. +254712345678" />
+</div>
+<div class="form-group">
+<label for="landline">Landline</label>
+<input id="landline" v-model="formData.landline" type="tel" placeholder="e.g. +25420123456" />
+</div>
       </form>
     </div>
   </div>
@@ -96,6 +108,15 @@ export default {
   emits: ['save', 'close'],
   setup(props, { emit }) {
 const formData = ref({
+firstName: "",
+lastName: "",
+email: "",
+organization: "",
+role: "",
+mobile: "",
+whatsapp: "",
+landline: ""
+})
 firstName: "",
 lastName: "",
 email: "",
@@ -135,6 +156,16 @@ landline: ""
 
     const save = () => {
 emit('save', {
+firstName: formData.value.firstName,
+lastName: formData.value.lastName,
+email: formData.value.email,
+organization: formData.value.organization,
+role: formData.value.role,
+mobile: formData.value.mobile,
+whatsapp: formData.value.whatsapp,
+landline: formData.value.landline,
+id: props.user?.id
+})
 firstName: formData.value.firstName,
 lastName: formData.value.lastName,
 email: formData.value.email,

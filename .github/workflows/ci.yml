@@ -8,7 +8,6 @@
         MARIADB_DATABASE: NGOL_D
         MARIADB_USER: ngol
         MARIADB_PASSWORD: ngol
-      ports: ["3306:3306"]
   env:
     MARIADB_HOST: localhost
     MARIADB_PORT: 3306

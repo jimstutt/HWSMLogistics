@@ -1,51 +1,52 @@
-#!/usr/bin/env node
-const express = require('express');
-const http = require('http');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const dotenv = require('dotenv');
-const path = require('path');
+// ~/Dev/NGOL-D/Backend/server.js
+import express from 'express';
+import http from 'http';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { config } from 'dotenv';
+import { authRouter } from './routes/auth.js';
+import { pool } from './mariadb.js';
 
 // Load env
-dotenv.config({ path: path.resolve(__dirname, 'config', 'config.env') });
+config({ path: './config/config.env' });
 
 const app = express();
-const server = http.createServer(app);
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:5173'],
+    methods: ['GET', 'POST'],
+  },
+});
 
 // Middleware
-app.use(helmet());
-app.use(cors());
-app.use(morgan('combined'));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json());
+app.use('/api/auth', authRouter);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check (spec-compliant)
+app.get('/api/health', async (req, res) => {
+  try {
+    await pool.getConnection().then(conn => conn.release());
+    res.json({ status: 'ok', db: 'mariadb' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', db: 'mariadb', error: err.message });
+  }
 });
-
-// Routes
-app.use('/api/shipments', require('./routes/shipments'));
-app.use('/api/inventory', require('./routes/inventory'));
 
 // Socket.IO
-const { Server } = require('socket.io');
-app.use('/api/auth', require('./routes/auth'));
-const io = new Server(server, {
-  cors: { origin: '*' },
-  transports: ['websocket']
-});
-
-// Minimal socket stub (from spec: real-time via Socket.IO)
 io.on('connection', (socket) => {
-  console.log('✅ Socket.IO client connected');
+  console.log('✅ Socket connected:', socket.id);
   socket.on('disconnect', () => {
-    console.log('🔌 Socket.IO client disconnected');
+    console.log('🔌 Socket disconnected:', socket.id);
   });
 });
 
 // Start
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ NGOL-D Backend running on http://0.0.0.0:${PORT}`);
+  console.log(`🚀 Backend running on http://localhost:${PORT}`);
+  console.log(`📡 Socket.IO ready`);
+  console.log(`🏥 Health: http://localhost:${PORT}/api/health`);
 });
+
+export { app, server, io };

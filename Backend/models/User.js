@@ -1,65 +1,38 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+// ~/Dev/NGOL-D/Backend/models/User.js
+import { pool } from '../mariadb.js';
+import bcrypt from 'bcryptjs';
 
-const userSchema = new mongoose.Schema({
-  firstName: {
-    type: String,
-    required: [true, 'First name is required'],
-    trim: true
-  },
-  lastName: {
-    type: String,
-    required: [true, 'Last name is required'],
-    trim: true
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    trim: true
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: 6
-  },
-  organization: {
-    type: String,
-    required: [true, 'Organization is required'],
-    trim: true
-  },
-  role: {
-    type: String,
-    enum: ['admin', 'logistics', 'field', 'viewer'],
-    default: 'viewer'
-  },
-  isActive: {
-    type: Boolean,
-    default: true
+class User {
+  static async findByEmail(email) {
+    const conn = await pool.getConnection();
+    try {
+      const rows = await conn.query(
+        'SELECT * FROM users WHERE email = ?',
+        [email]
+      );
+      return rows[0] || null;
+    } finally {
+      conn.release();
+    }
   }
-}, {
-  timestamps: true
-});
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
+  static async create({ email, password, name, role = 'user' }) {
+    const hashed = await bcrypt.hash(password, 12);
+    const conn = await pool.getConnection();
+    try {
+      const { insertId } = await conn.query(
+        'INSERT INTO users (email, password, name, role, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [email, hashed, name, role]
+      );
+      return { id: insertId, email, name, role };
+    } finally {
+      conn.release();
+    }
   }
-  
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+
+  static async comparePassword(password, hash) {
+    return bcrypt.compare(password, hash);
   }
-});
+}
 
-// Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
-
-} module.exports =  mongoose.model('User', userSchema);
+export { User };
