@@ -1,29 +1,38 @@
 {
-  description = "NGOL-D — NGO Logistics System (MariaDB, Vue, Node)";
-
+  description = "NGO Logistics Dashboard (Node.js + MariaDB + Vue)";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
-    systems.url = "github:nix-systems/default-linux";
+    flake-utils.url = "github:numtide/flake-utils";
   };
-
-  outputs = { self, nixpkgs, systems }:
-    let
-      forEachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
-    in
-    {
-      packages = forEachSystem (pkgs:
-        rec {
-          ngol-d-backend = pkgs.callPackage ./Backend/default.nix { };
-          ngol-d-frontend = pkgs.callPackage ./App/default.nix { };
-        });
-      devShells = forEachSystem (pkgs: {
-        default = pkgs.mkShell {
-          packages = with pkgs; [
-            nodejs_20
-            mariadb-client
-            git
-          ];
-        };
-      });
-    };
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+  }:
+    flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+      backend = pkgs.callPackage ./Backend/default.nix { inherit pkgs; };
+      frontend = pkgs.callPackage ./App { inherit pkgs; };
+    in {
+      packages.Backend = backend;
+      packages.frontend = frontend.default;
+      apps.Backend = {
+        type = "app";
+        program = "${backend}/bin/ngol-d-backend";
+      };
+      apps.frontend-prod = {
+        type = "app";
+        program = "${frontend.serve}/bin/serve-prod";
+      };
+      devShells.default = pkgs.mkShell {
+        packages = [ pkgs.nodejs_20 pkgs.yarn pkgs.mariadb_106 pkgs.curl ];
+        shellHook = ''
+          echo "✅ NGO Logistics Dev Shell (MariaDB 10.6)"
+          echo "   Backend: cd Backend && node server.js"
+          echo "   Frontend: cd App && npm run dev"
+          echo "   Full stack: ./scripts/run-full-stack-safe.sh"
+        '';
+      };
+      devShells.frontend = frontend.devShell;
+    });
 }
