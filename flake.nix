@@ -28,9 +28,6 @@
         packages = [ pkgs.nodejs_20 pkgs.yarn pkgs.mariadb_106 pkgs.curl ];
         shellHook = ''
           echo "✅ NGO Logistics Dev Shell (MariaDB 10.6)"
-          echo "   Backend: cd Backend && node server.js"
-          echo "   Frontend: cd App && npm run dev"
-          echo "   Full stack: ./scripts/run-full-stack-safe.sh"
         '';
       };
       devShells.frontend = frontend.devShell;
