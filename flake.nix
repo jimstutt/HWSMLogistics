@@ -25,14 +25,9 @@
         program = "${frontend.serve}/bin/serve-prod";
       };
       devShells.default = pkgs.mkShell {
-        # Use mariadb_106 for BOTH client and server (single version)
         packages = [ pkgs.nodejs_20 pkgs.yarn pkgs.mariadb_106 pkgs.curl ];
         shellHook = ''
-          export MARIADB_HOST="127.0.0.1"
-          export MARIADB_PORT="3306"
-          export MARIADB_USER="ngol"
-          export MARIADB_PASSWORD="ngol"
-          export MARIADB_DATABASE="NGOL_D"
+          # Minimal shellHook to avoid stdout capture issues
         '';
       };
       devShells.frontend = frontend.devShell;
