@@ -25,15 +25,14 @@
         program = "${frontend.serve}/bin/serve-prod";
       };
       devShells.default = pkgs.mkShell {
-        packages = [
-          pkgs.nodejs_20
-          pkgs.yarn
-          pkgs.mariadb_106  # ← explicit 10.6 server + client
-          pkgs.curl
-        ];
+        # Use mariadb_106 for BOTH client and server (single version)
+        packages = [ pkgs.nodejs_20 pkgs.yarn pkgs.mariadb_106 pkgs.curl ];
         shellHook = ''
-          echo "✅ NGO Logistics Dev Shell (MariaDB 10.6.21)"
-          echo "   Use: ./scripts/run-full-stack-safe.sh"
+          export MARIADB_HOST="127.0.0.1"
+          export MARIADB_PORT="3306"
+          export MARIADB_USER="ngol"
+          export MARIADB_PASSWORD="ngol"
+          export MARIADB_DATABASE="NGOL_D"
         '';
       };
       devShells.frontend = frontend.devShell;
