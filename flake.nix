@@ -25,9 +25,15 @@
         program = "${frontend.serve}/bin/serve-prod";
       };
       devShells.default = pkgs.mkShell {
-        packages = [ pkgs.nodejs_20 pkgs.yarn pkgs.mariadb_106 pkgs.curl ];
+        packages = [
+          pkgs.nodejs_20
+          pkgs.yarn
+          pkgs.mariadb_106  # ← explicit 10.6 server + client
+          pkgs.curl
+        ];
         shellHook = ''
-          echo "✅ NGO Logistics Dev Shell (MariaDB 10.6)"
+          echo "✅ NGO Logistics Dev Shell (MariaDB 10.6.21)"
+          echo "   Use: ./scripts/run-full-stack-safe.sh"
         '';
       };
       devShells.frontend = frontend.devShell;
