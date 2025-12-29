@@ -14,7 +14,9 @@ jobs:
         ports: ["3306:3306"]
         options: >-
           --health-cmd="mariadb-admin ping"
-          --health-interval=10s --health-timeout=5s --health-retries=3
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
@@ -27,30 +29,24 @@ jobs:
         with:
           path: /nix/store
           key: nix-${{ hashFiles('flake.lock') }}
-      - name: Format check
-        run: nix fmt --check || true
-      - name: Build App & Backend
+      - name: Format check (nix fmt)
+        run: nix fmt --check
+      - name: Build frontend & backend
         run: nix build .#App .#Backend
       - name: Run tests with MariaDB
         run: nix run .#check
         env:
-          MARIADB_HOST: 127.0.0.1
+          MARIADB_HOST: localhost
           MARIADB_PORT: 3306
           MARIADB_USER: ngol
           MARIADB_PASSWORD: ngol
           MARIADB_DATABASE: NGOL_D
           NODE_ENV: test
-      - name: Smoke test
+      - name: Start servers & smoke-test
         run: |
-          nix run .#Backend &
-          BACKEND_PID=$!
-          sleep 5
-          (cd App && npm run dev) &
-          FRONTEND_PID=$!
-          for i in {1..15}; do
-            curl -s http://localhost:3000/api/health && curl -s http://localhost:5173 && break
-            sleep 2
-          done
-          curl --fail http://localhost:5173
-          curl --fail http://localhost:3000/api/health
-          kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+          timeout 30s nix run .#start-servers &
+          SERVER_PID=$!
+          sleep 10
+          curl --fail http://localhost:5173 || exit 1
+          curl --fail http://localhost:3000/api/health || exit 1
+          kill $SERVER_PID

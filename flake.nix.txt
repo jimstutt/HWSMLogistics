@@ -12,39 +12,34 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
       backend = pkgs.callPackage ./Backend/default.nix { inherit pkgs; };
-      app = pkgs.callPackage ./App { inherit pkgs; };
+      frontend = pkgs.callPackage ./App { inherit pkgs; };
     in {
-      # nix build .#App .#Backend
-      packages.App = app.default;
+      # nix build .#Backend
       packages.Backend = backend;
-
-      # nix run .#App-prod
-      apps.App-prod = {
-        type = "app";
-        program = "${app.serve}/bin/serve-prod";
-      };
-
+      # nix build .#App → matches your correction
+      packages.App = frontend.default;
       # nix run .#Backend
       apps.Backend = {
         type = "app";
         program = "${backend}/bin/ngol-d-backend";
       };
-
-      # nix run .#check (integration tests)
-      apps.check = {
+      # nix run .#frontend-prod
+      apps.frontend-prod = {
         type = "app";
-        program = toString ./scripts/check.js;
+        program = "${frontend.serve}/bin/serve-prod";
       };
-
-      # nix develop
+      # nix develop → full stack dev
       devShells.default = pkgs.mkShell {
-        packages = [ pkgs.nodejs_20 pkgs.mariadb pkgs.curl ];
+        packages = [ pkgs.nodejs_20 pkgs.mariadb_106 pkgs.curl ];
         shellHook = ''
-          echo "✅ NGOL-D Dev Shell"
-          echo "   Backend: cd Backend && node server.js"
-          echo "   Frontend: cd App && npm run dev"
-          echo "   Full stack: ./scripts/start-servers.sh"
+          export MARIADB_HOST="127.0.0.1"
+          export MARIADB_PORT="3306"
+          export MARIADB_USER="ngol"
+          export MARIADB_PASSWORD="ngol"
+          export MARIADB_DATABASE="NGOL_D"
+          echo "✅ NGO Logistics Dev Shell (MariaDB 10.6)"
         '';
       };
+      devShells.frontend = frontend.devShell;
     });
 }

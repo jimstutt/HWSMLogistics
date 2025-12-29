@@ -1,36 +1,24 @@
-{ pkgs ? import <nixpkgs> {} }:
-
-pkgs.stdenv.mkDerivation {
+{ pkgs, stdenv, lib }:
+stdenv.mkDerivation {
   name = "ngol-d-backend";
-  version = "1.0.0";
-  src = ./.;
-
-  buildInputs = [
-    pkgs.nodejs_20
-    pkgs.mariadb-client
-  ];
-
-  buildPhase = ''
-    runHook preBuild
-    HOME=$TMPDIR npm ci --offline --no-audit --no-fund
-    runHook postBuild
-  '';
-
+  src = ../.;  # ← source is project root
+  buildInputs = [ pkgs.nodejs_20 ];
   installPhase = ''
-    runHook preInstall
-    mkdir -p $out/{bin,lib}
-    cp -r . $out/lib/
-    chmod +x $out/lib/server.js
-
-    cat > $out/bin/ngol-d-backend <<SCRIPT
+    mkdir -p $out/bin $out/lib
+    
+    # Find Backend files robustly
+    BACKEND_DIR=$(find . -name server.js -path '*/Backend/*' -printf '%h\n' -quit)
+    test -n "$BACKEND_DIR" || { echo "❌ Backend dir not found"; exit 1; }
+    
+    cp -v "$BACKEND_DIR"/server.js "$BACKEND_DIR"/mariadb.js "$BACKEND_DIR"/schema.sql $out/lib/
+    cp -v "$BACKEND_DIR"/package.json $out/lib/
+    cp -vr "$BACKEND_DIR"/models "$BACKEND_DIR"/routes "$BACKEND_DIR"/sockets $out/lib/
+    
+    cat > $out/bin/ngol-d-backend <<'SCRIPT'
 #!/usr/bin/env bash
-cd \$out/lib
-exec node server.js
+cd "$out/lib"
+exec ${pkgs.nodejs_20}/bin/node server.js "$@"
 SCRIPT
     chmod +x $out/bin/ngol-d-backend
-    runHook postInstall
   '';
-
-  dontPatchELF = true;
-  dontStrip = true;
 }

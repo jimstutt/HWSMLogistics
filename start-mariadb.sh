@@ -1,24 +1,56 @@
 #!/usr/bin/env bash
+# ~/Dev/NGOL-D/start-mariadb.sh
+# Starts MariaDB using nixpkgs#mariadb_106 (server + client)
 set -euo pipefail
 
-MARIADB_DATA_DIR="${MARIADB_DATA_DIR:-$HOME/.local/share/mariadb}"
-MARIADB_SOCKET_DIR="${MARIADB_SOCKET_DIR:-$HOME/.local/run}"
-MARIADB_PORT="${MARIADB_PORT:-3306}"
+DATA_DIR="${NGOL_MARIADB_DIR:-./data/mariadb}"
+PORT="${NGOL_MARIADB_PORT:-3306}"
+SOCKET="${DATA_DIR}/mysqld.sock"
 
-mkdir -p "$MARIADB_DATA_DIR" "$MARIADB_SOCKET_DIR"
+echo "🔧 Starting MariaDB for NGOL-D..."
+echo "   Data: $DATA_DIR"
+echo "   Port: $PORT"
+echo "   Socket: $SOCKET"
 
-if [ ! -f "$MARIADB_DATA_DIR/mysql/db.opt" ]; then
-  echo "🆕 Initializing MariaDB data directory..."
-  mysql_install_db --datadir="$MARIADB_DATA_DIR" --user="$USER" >/dev/null
+# Clean start
+rm -rf "$DATA_DIR" && mkdir -p "$DATA_DIR"
+
+# Initialize with MariaDB 10.6+ method
+nix shell nixpkgs#mariadb_106 -c mariadb-install-db \
+  --datadir="$DATA_DIR" \
+  --user="$(id -un)" >/dev/null 2>&1
+
+# Start server
+nix shell nixpkgs#mariadb_106 -c mariadbd \
+  --datadir="$DATA_DIR" \
+  --user="$(id -un)" \
+  --port="$PORT" \
+  --socket="$SOCKET" \
+  --skip-grant-tables \
+  --skip-log-error &
+MARIADB_PID=$!
+
+# Wait for ready
+for i in {1..10}; do
+  if nix shell nixpkgs#mariadb_106 -c mysqladmin \
+    ping -u root -S "$SOCKET" --silent 2>/dev/null; then
+    break
+  fi
+  sleep 1
+done
+
+# Setup NGOL_D database/user
+nix shell nixpkgs#mariadb_106 -c mysql -u root -S "$SOCKET" -e "
+  CREATE DATABASE IF NOT EXISTS NGOL_D;
+  CREATE USER IF NOT EXISTS 'ngol'@'localhost' IDENTIFIED BY 'ngol';
+  GRANT ALL PRIVILEGES ON NGOL_D.* TO 'ngol'@'localhost';
+  FLUSH PRIVILEGES;
+"
+
+# Apply schema
+if [[ -f Backend/schema.sql ]]; then
+  nix shell nixpkgs#mariadb_106 -c mysql -u ngol -pngol -S "$SOCKET" NGOL_D < Backend/schema.sql
 fi
 
-echo "🚀 Starting MariaDB on port $MARIADB_PORT..."
-mysqld \
-  --datadir="$MARIADB_DATA_DIR" \
-  --socket="$MARIADB_SOCKET_DIR/mariadb.sock" \
-  --port="$MARIADB_PORT" \
-  --bind-address=127.0.0.1 \
-  --skip-networking=0 \
-  --skip-grant-tables=0 \
-  --standalone \
-  --console
+echo "✅ MariaDB ready on port $PORT"
+echo "   Test: nix shell nixpkgs#mariadb_106 -c mysql -u ngol -pngol -S $SOCKET NGOL_D -e 'SELECT 1;'"

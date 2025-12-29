@@ -1,6 +1,8 @@
--- MariaDB schema (NGOL-D) — InnoDB, UTF8MB4
-CREATE DATABASE IF NOT EXISTS ngol_d;
-USE ngol_d;
+-- NGOL-D MariaDB Schema (spec-compliant)
+-- Matches NGOLTechSpec.md requirements
+
+CREATE DATABASE IF NOT EXISTS NGOL_D;
+USE NGOL_D;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT PRIMARY KEY AUTO_INCREMENT,
