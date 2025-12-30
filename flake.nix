@@ -9,78 +9,21 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-
-      # Backend derivation (unchanged)
+      
+      # Backend derivation
       backend = pkgs.callPackage ./Backend/default.nix { inherit pkgs; };
-
-      # Frontend production build derivation
-      ngol-d-frontend = pkgs.stdenv.mkDerivation rec {
-        pname = "ngol-d-frontend";
-        version = "0.1.0";
-        src = ./App;  # Critical: points to your frontend directory
-        
-        buildInputs = [ 
-          pkgs.nodejs_20
-          pkgs.pnpm
-          pkgs.git  # Needed for npm dependencies that use git URLs
-        ];
-        
-        # Isolate npm cache to avoid permission issues
-        HOME = "/tmp";
-        
-        buildPhase = ''
-          # Install dependencies with frozen lockfile
-          pnpm install --frozen-lockfile --ignore-scripts
-          
-          # Build production artifacts
-          pnpm run build
-        '';
-        
-        installPhase = ''
-          mkdir -p $out
-          cp -r dist/* $out/  # Vite outputs to dist/ by default
-        '';
-        
-        # Essential for static assets
-        dontFixup = true;
-      };
-
-      # Legacy frontend package (for compatibility)
-      legacy-frontend = pkgs.symlinkJoin {
-        name = "legacy-frontend";
-        paths = [ ngol-d-frontend ];
-      };
-
-      # Production server for frontend (for testing only)
-      frontend-prod-server = pkgs.stdenv.mkDerivation {
-        pname = "ngol-d-frontend-server";
-        version = "0.1.0";
-        src = ngol-d-frontend;
-        
-        buildInputs = [ pkgs.nodejs_20 ];
-        
-        buildPhase = ''
-          npm install -g serve@14
-        '';
-        
-        installPhase = ''
-          mkdir -p $out/bin
-          cat > $out/bin/serve-prod <<EOF
-          #!${pkgs.bash}/bin/bash
-          exec ${pkgs.nodejs_20}/bin/serve -s ${ngol-d-frontend} -p 5000
-          EOF
-          chmod +x $out/bin/serve-prod
-        '';
-      };
+      
+      # Frontend derivation (simplified inheritance)
+      frontend = pkgs.callPackage ./App { inherit pkgs; };
 
     in {
       packages = {
         # Primary packages
         Backend = backend;
-        ngol-d-frontend = ngol-d-frontend;  # Required by deploy script
+        App = frontend.default;
         
-        # Legacy compatibility
-        App = legacy-frontend;
+        # Critical: Add this for your deployment script
+        ngol-d-frontend = frontend.default;
       };
 
       apps = {
@@ -91,19 +34,13 @@
         
         frontend-prod = {
           type = "app";
-          program = "${frontend-prod-server}/bin/serve-prod";
+          program = "${frontend.serve}/bin/serve-prod";
         };
       };
 
       devShells = {
         default = pkgs.mkShell {
-          packages = [ 
-            pkgs.nodejs_20 
-            pkgs.mariadb_106 
-            pkgs.curl 
-            pkgs.pnpm
-          ];
-          
+          packages = [ pkgs.nodejs_20 pkgs.mariadb_106 pkgs.curl pkgs.npm ];
           shellHook = ''
             export MARIADB_HOST="127.0.0.1"
             export MARIADB_PORT="3306"
@@ -111,21 +48,12 @@
             export MARIADB_PASSWORD="ngol"
             export MARIADB_DATABASE="NGOL_D"
             echo "✅ NGO Logistics Dev Shell (Node.js 20 + MariaDB 10.6)"
-            echo "Frontend: cd App && pnpm dev"
+            echo "Frontend: cd App && npm run dev"
             echo "Backend: cd Backend && npm run dev"
           '';
         };
         
-        frontend = pkgs.mkShell {
-          packages = [ pkgs.nodejs_20 pkgs.pnpm ];
-          shellHook = ''
-            cd App
-            echo "✅ Frontend Dev Shell"
-            echo "Available commands:"
-            echo "  pnpm dev   → Start dev server (port 5173)"
-            echo "  pnpm build → Build production artifacts"
-          '';
-        };
+        frontend = frontend.devShell;
       };
     });
 }
