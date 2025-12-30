@@ -13,7 +13,7 @@
       # Backend derivation
       backend = pkgs.callPackage ./Backend/default.nix { inherit pkgs; };
       
-      # Frontend derivation (simplified inheritance)
+      # Frontend derivation
       frontend = pkgs.callPackage ./App { inherit pkgs; };
 
     in {
@@ -22,7 +22,7 @@
         Backend = backend;
         App = frontend.default;
         
-        # Critical: Add this for your deployment script
+        # CRITICAL: Add this for your deployment script
         ngol-d-frontend = frontend.default;
       };
 
@@ -40,16 +40,14 @@
 
       devShells = {
         default = pkgs.mkShell {
-          packages = [ pkgs.nodejs_20 pkgs.mariadb_106 pkgs.curl pkgs.npm ];
+          packages = [ pkgs.nodejs_20 pkgs.mariadb_106 pkgs.curl ];
           shellHook = ''
             export MARIADB_HOST="127.0.0.1"
             export MARIADB_PORT="3306"
             export MARIADB_USER="ngol"
             export MARIADB_PASSWORD="ngol"
             export MARIADB_DATABASE="NGOL_D"
-            echo "✅ NGO Logistics Dev Shell (Node.js 20 + MariaDB 10.6)"
-            echo "Frontend: cd App && npm run dev"
-            echo "Backend: cd Backend && npm run dev"
+            echo "✅ NGO Logistics Dev Shell (MariaDB 10.6)"
           '';
         };
         

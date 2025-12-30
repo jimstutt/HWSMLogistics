@@ -2,71 +2,59 @@
 # Minimal Vue 3 frontend (Nixpkgs 24.11 compatible)
 { pkgs ? import <nixpkgs> { }, stdenv, lib }:
 let
+  # Use npmlock2nix (modern alternative to yarn2nix)
   nodejs = pkgs.nodejs_20;
   src = ./.;
+  packageLock = ./package-lock.json;
   
-  # Build frontend derivation
+  # Build frontend
   build = stdenv.mkDerivation {
     pname = "ngol-d-frontend";
     version = "0.1.0";
-    
     src = src;
     
-    nativeBuildInputs = [ nodejs pkgs.npm ];
+    # FIX: Remove pkgs.npm reference - nodejs already includes npm
+    nativeBuildInputs = [ nodejs ];
     
     buildPhase = ''
       export HOME=$TMPDIR
       export NODE_OPTIONS=--openssl-legacy-provider
       
-      # Install dependencies with network access enabled
-      echo "📦 Installing npm dependencies..."
-      npm install --no-fund --no-audit --ignore-scripts
+      # Add verbose flag for better debugging
+      echo "📦 Installing dependencies with npm..."
+      npm ci --no-fund --no-audit --verbose
       
-      # Build production artifacts
-      echo "🚀 Building production frontend..."
+      echo "🚀 Building production artifacts..."
       npm run build
     '';
     
     installPhase = ''
-      echo "💾 Installing build artifacts..."
       mkdir -p $out
       cp -r dist/* $out/
-      echo "✅ Frontend build successful!"
-      ls -la $out
+      echo "✅ Build successful! Files installed to $out"
     '';
     
     # Essential for static assets
     dontFixup = true;
     
-    # Allow network access during build (required for npm install)
-    # This is SAFE because we pin dependencies via package-lock.json
+    # Allow network access during build (required for npm)
     __noChroot = true;
-    impureEnv = true;
-    
-    meta = {
-      description = "NGO Logistics Dashboard Vue 3 frontend";
-      platforms = lib.platforms.unix;
-    };
   };
 in rec {
-  # Primary output: nix build .#App
+  # nix build .#App
   default = build;
   
-  # Development shell: nix develop .#frontend
+  # Dev shell
   devShell = pkgs.mkShell {
-    packages = [ nodejs pkgs.npm ];
-    
+    packages = [ nodejs ];
     shellHook = ''
       export NODE_OPTIONS=--openssl-legacy-provider
-      echo "✅ NGOL-D Frontend Dev Shell (npm)"
-      echo "   Commands:"
-      echo "     npm install   → Install dependencies"
-      echo "     npm run dev   → Start dev server (port 5173)"
-      echo "     npm run build → Build production artifacts"
+      echo "✅ NGOL-D Frontend Dev Shell"
+      echo "   Run: npm run dev"
     '';
   };
   
-  # Production static file server
+  # Production server
   serve = pkgs.writeShellScriptBin "serve-prod" ''
     cd ${default}
     echo "🚀 Serving NGOL-D frontend from ${default}"
