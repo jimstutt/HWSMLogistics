@@ -1,18 +1,15 @@
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import App from './App.vue';
-import router from './router';          // ✅ Must import
-import './styles.css';
+import { createApp } from 'vue'
+import { createVuelidate } from '@vuelidate/core'
+import App from './App.vue'
+import router from './router'
+import './assets/main.css'
 
-const pinia = createPinia();
-const app = createApp(App);
+const app = createApp(App)
 
-app.use(pinia);
-app.use(router);                        // ✅ Must use
+// Use Vuelidate
+app.use(createVuelidate())
 
-router.isReady().then(() => {
-  app.mount('#app');
-  console.log('✅ Vue app mounted successfully — Login.vue first');
-}).catch(err => {
-  console.error('❌ Router init failed:', err);
-});
+// Use router
+app.use(router)
+
+app.mount('#app')

@@ -2,7 +2,7 @@
 stdenv.mkDerivation {
   name = "ngol-d-backend";
   src = ../.;  # ← source is project root
-  buildInputs = [ pkgs.nodejs_20 ];
+  buildInputs = [ pkgs.nodejs_22 ];
   installPhase = ''
     mkdir -p $out/bin $out/lib
     
@@ -17,7 +17,7 @@ stdenv.mkDerivation {
     cat > $out/bin/ngol-d-backend <<'SCRIPT'
 #!/usr/bin/env bash
 cd "$out/lib"
-exec ${pkgs.nodejs_20}/bin/node server.js "$@"
+exec ${pkgs.nodejs_22}/bin/node server.js "$@"
 SCRIPT
     chmod +x $out/bin/ngol-d-backend
   '';

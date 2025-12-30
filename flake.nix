@@ -36,7 +36,7 @@
     
     # Development shells
     devShells.default = pkgs.mkShell {
-      packages = [ pkgs.nodejs_20 pkgs.mariadb_106 pkgs.curl ];
+      packages = [ pkgs.nodejs_22 pkgs.mariadb_106 pkgs.curl ];
       shellHook = ''
         export MARIADB_HOST="127.0.0.1"
         export MARIADB_PORT="3306"

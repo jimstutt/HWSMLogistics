@@ -1,29 +1,41 @@
-// ~/Dev/NGOL-D/App/src/router/index.js
-// NGOLTechSpec.md: "Ensure that localhost:5173 always loads a modal Login.vue form first"
-import { createRouter, createWebHistory } from 'vue-router';
-import Login from '../views/Login.vue';
-import Dashboard from '../views/Dashboard.vue';
+import { createRouter, createWebHistory } from 'vue-router'
+import Login from '../views/Login.vue'
+import Dashboard from '../views/Dashboard.vue'
 
 const routes = [
-  { path: '/', component: Login, meta: { modal: true } }, // ← Login.vue first
-  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
-];
+  {
+    path: '/',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
+  }
+]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
-});
+})
 
-// Enforce login first (spec-compliant)
+// Navigation guard for authentication
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('ngol_token')
+  
   if (to.meta.requiresAuth && !token) {
-    next('/');
+    next('/')
   } else if (to.path === '/' && token) {
-    next('/dashboard');
+    next('/dashboard')
   } else {
-    next();
+    next()
   }
-});
+})
 
-export default router;
+export default router

@@ -1,3 +1,13 @@
+#!/bin/bash
+set -e
+
+echo "📝 Updating Login.vue component..."
+cd ./App
+
+# Create views directory if it doesn't exist
+mkdir -p src/views
+
+cat > src/views/Login.vue << 'EOF'
 <template>
   <div class="login-container">
     <div class="login-card">
@@ -243,3 +253,7 @@ label {
   }
 }
 </style>
+EOF
+
+echo "✅ Login.vue updated successfully"
+echo "💡 Next step: Rebuild the frontend with 'npm run build'"
