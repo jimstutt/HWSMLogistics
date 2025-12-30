@@ -10,25 +10,12 @@ if [ ! -f "default.nix" ]; then
   exit 1
 fi
 
-# Check if npmDepsHash exists in the file
-if ! grep -q "npmDepsHash" default.nix; then
-  echo "ℹ️ No npmDepsHash found in default.nix. Looking for buildNpmPackage usage..."
-  if grep -q "buildNpmPackage" default.nix; then
-    echo "✅ Found buildNpmPackage. Adding npmDepsHash line..."
-    # Insert npmDepsHash line after the opening brace of buildNpmPackage
-    sed -i '/buildNpmPackage {/a\    npmDepsHash = lib.fakeHash;' default.nix
-  else
-    echo "❌ Error: This script requires buildNpmPackage with npmDepsHash in default.nix"
-    exit 1
-  fi
-fi
-
-# Backup the original file
+# Backup the original file first
 cp default.nix default.nix.backup
 echo "✅ Created backup: default.nix.backup"
 
-# Set fake hash temporarily
-sed -i 's/npmDepsHash = "[^"]*"/npmDepsHash = lib.fakeHash/' default.nix
+# Set fake hash temporarily using safe delimiter
+sed -i 's|npmDepsHash = "[^"]*"|npmDepsHash = lib.fakeHash|' default.nix
 echo "✅ Set fake hash in default.nix"
 
 # Attempt build to get the real hash (will fail but show the hash)
@@ -40,7 +27,7 @@ echo ""
 # Run build and capture output
 BUILD_OUTPUT=$(nix build --no-link .#ngol-d-frontend 2>&1) || true
 
-# Save the output for debugging if needed
+# Save the output for debugging
 echo "$BUILD_OUTPUT" > /tmp/npm-hash-output.log
 echo "📋 Build output saved to /tmp/npm-hash-output.log"
 
@@ -50,10 +37,8 @@ CORRECT_HASH=$(echo "$BUILD_OUTPUT" | grep -oP 'got:\s+sha256-[A-Za-z0-9+/=]+' |
 if [ -z "$CORRECT_HASH" ]; then
   echo ""
   echo "❌ Failed to extract hash from build output."
-  echo "   Please check /tmp/npm-hash-output.log for details."
-  echo "   Or manually look for 'got: sha256-...' in the build output."
-  echo ""
-  echo "   Restoring original default.nix from backup..."
+  echo "   Check /tmp/npm-hash-output.log for details"
+  echo "   Restoring backup..."
   cp default.nix.backup default.nix
   exit 1
 fi
@@ -61,30 +46,20 @@ fi
 echo ""
 echo "✅ Extracted correct hash: $CORRECT_HASH"
 
-# Restore from backup first to preserve all other changes
+# Escape special characters for sed
+ESCAPED_HASH=$(echo "$CORRECT_HASH" | sed 's/[\/&]/\\&/g')
+
+# Restore from backup first
 cp default.nix.backup default.nix
 
-# Update default.nix with the real hash
-if grep -q "npmDepsHash = lib.fakeHash" default.nix; then
-  sed -i "s/npmDepsHash = lib.fakeHash/npmDepsHash = \"$CORRECT_HASH\"/" default.nix
-elif grep -q 'npmDepsHash = "[^"]*"' default.nix; then
-  sed -i "s/npmDepsHash = \"[^\"]*\"/npmDepsHash = \"$CORRECT_HASH\"/" default.nix
-else
-  echo "⚠️ Could not find npmDepsHash line. Adding it manually..."
-  # Try to insert after buildNpmPackage line
-  if grep -q "buildNpmPackage {" default.nix; then
-    sed -i "/buildNpmPackage {/a\    npmDepsHash = \"$CORRECT_HASH\";" default.nix
-  else
-    echo "❌ Error: Could not determine where to insert npmDepsHash"
-    exit 1
-  fi
-fi
+# Update with real hash using safe delimiter
+sed -i "s|npmDepsHash = lib.fakeHash|npmDepsHash = \"$ESCAPED_HASH\"|" default.nix
 
 echo "✅ Updated default.nix with correct hash"
 
-# Clean up backup
+# Clean up
 rm default.nix.backup
 
 echo ""
 echo "✨ npm dependencies hash updated successfully"
-echo "💡 Next step: Run './rebuild-and-deploy.sh' to rebuild and deploy the application"
+echo "💡 Next step: Run './rebuild-and-deploy.sh'"
