@@ -2,28 +2,20 @@
 # Minimal Vue 3 frontend (Nixpkgs 24.11 compatible)
 { pkgs ? import <nixpkgs> { }, stdenv, lib }:
 let
-  # Use npmlock2nix (modern alternative to yarn2nix)
   nodejs = pkgs.nodejs_20;
-  src = ./.;
-  packageLock = ./package-lock.json;
   
-  # Build frontend
-  build = stdenv.mkDerivation {
+  # Build frontend with proper npm dependency management
+  build = pkgs.buildNpmPackage {
     pname = "ngol-d-frontend";
     version = "0.1.0";
-    src = src;
     
-    # FIX: Remove pkgs.npm reference - nodejs already includes npm
-    nativeBuildInputs = [ nodejs ];
+    src = ./.;
+    
+    # CRITICAL: Use the CORRECT hash from the error message
+    npmDepsHash = "sha256-N7XFIbQV0UFsQpke95iVvoIgIPNMlN3PadmaR50YcwA=";
     
     buildPhase = ''
-      export HOME=$TMPDIR
       export NODE_OPTIONS=--openssl-legacy-provider
-      
-      # Add verbose flag for better debugging
-      echo "📦 Installing dependencies with npm..."
-      npm ci --no-fund --no-audit --verbose
-      
       echo "🚀 Building production artifacts..."
       npm run build
     '';
@@ -37,20 +29,25 @@ let
     # Essential for static assets
     dontFixup = true;
     
-    # Allow network access during build (required for npm)
-    __noChroot = true;
+    meta = {
+      description = "NGO Logistics Dashboard Vue 3 frontend";
+      platforms = lib.platforms.unix;
+    };
   };
 in rec {
-  # nix build .#App
+  # Primary output
   default = build;
   
-  # Dev shell
+  # Development shell
   devShell = pkgs.mkShell {
-    packages = [ nodejs ];
+    packages = [ nodejs pkgs.npm ];
     shellHook = ''
       export NODE_OPTIONS=--openssl-legacy-provider
-      echo "✅ NGOL-D Frontend Dev Shell"
-      echo "   Run: npm run dev"
+      echo "✅ NGOL-D Frontend Dev Shell (npm)"
+      echo "   Commands:"
+      echo "     npm install   → Install dependencies"
+      echo "     npm run dev   → Start dev server (port 5173)"
+      echo "     npm run build → Build production artifacts"
     '';
   };
   
