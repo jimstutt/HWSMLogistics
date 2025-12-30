@@ -1,18 +1,23 @@
 # ~/Dev/NGOL-D/App/default.nix
-# Nix-managed Vue 3 frontend (no network, reproducible)
+# Minimal Vue 3 frontend (Nixpkgs 24.11 compatible)
 { pkgs ? import <nixpkgs> { }, stdenv, lib }:
 
 let
-  # Use pkgs.yarn2nix for reproducible builds
-  yarnLock = ./yarn.lock;
-  nodePackages = pkgs.yarn2nix.mkYarnPackage {
-    inherit yarnLock;
-    src = ./.;
-    # Build with offline cache
+  # Use npmlock2nix (modern alternative to yarn2nix)
+  nodejs = pkgs.nodejs_20;
+  src = ./.;
+  packageLock = ./package-lock.json;
+  # Build frontend
+  build = stdenv.mkDerivation {
+    pname = "ngol-d-frontend";
+    version = "0.1.0";
+    src = src;
+    nativeBuildInputs = [ nodejs ];
     buildPhase = ''
       export HOME=$TMPDIR
       export NODE_OPTIONS=--openssl-legacy-provider
-      yarn --offline build
+      npm ci --no-fund --no-audit
+      npm run build
     '';
     installPhase = ''
       mkdir -p $out
@@ -21,21 +26,21 @@ let
   };
 in rec {
   # nix build .#App
-  default = nodePackages;
+  default = build;
 
-  # Dev shell (offline-safe)
+  # Dev shell
   devShell = pkgs.mkShell {
-    packages = [ pkgs.nodejs_20 pkgs.yarn ];
+    packages = [ nodejs ];
     shellHook = ''
       export NODE_OPTIONS=--openssl-legacy-provider
-      echo "✅ NGOL-D Frontend Dev Shell (offline-safe)"
-      echo "   Run: yarn --offline dev"
+      echo "✅ NGOL-D Frontend Dev Shell"
+      echo "   Run: npm run dev"
     '';
   };
 
   # Production server
   serve = pkgs.writeShellScriptBin "serve-prod" ''
     cd ${default}
-    exec ${pkgs.nodejs_20}/bin/http-server -p 8080 -c-1
+    exec ${pkgs.python3}/bin/python -m http.server 8080
   '';
 }
