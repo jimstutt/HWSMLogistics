@@ -1,15 +1,14 @@
 import { createApp } from 'vue'
-import { createVuelidate } from '@vuelidate/core'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import './assets/main.css'
 
 const app = createApp(App)
+const pinia = createPinia()
 
-// Use Vuelidate
-app.use(createVuelidate())
-
-// Use router
+app.use(pinia)
 app.use(router)
 
-app.mount('#app')
+router.isReady().then(() => {
+  app.mount('#app')
+})

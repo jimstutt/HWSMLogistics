@@ -3,21 +3,8 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 
 const routes = [
-  {
-    path: '/',
-    name: 'Login',
-    component: Login
-  },
-  {
-    path: '/dashboard',
-    name: 'Dashboard',
-    component: Dashboard,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/'
-  }
+  { path: '/', name: 'Login', component: Login, meta: { requiresAuth: false } },
+  { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
@@ -25,17 +12,11 @@ const router = createRouter({
   routes
 })
 
-// Navigation guard for authentication
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('ngol_token')
-  
-  if (to.meta.requiresAuth && !token) {
-    next('/')
-  } else if (to.path === '/' && token) {
-    next('/dashboard')
-  } else {
-    next()
-  }
+  if (to.meta.requiresAuth && !token) next('/')
+  else if (to.path === '/' && token) next('/dashboard')
+  else next()
 })
 
 export default router

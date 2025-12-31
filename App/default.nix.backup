@@ -12,7 +12,7 @@ let
     src = ./.;
     
     # CRITICAL: Use the CORRECT hash from the error message
-    npmDepsHash = "sha256-etNE/XNPi8UftQ0kA+4DrkTnp8qAMgct8LSrSdyKVB8=";
+    npmDepsHash = "sha256-N7XFIbQV0UFsQpke95iVvoIgIPNMlN3PadmaR50YcwA=";
     
     buildPhase = ''
       export NODE_OPTIONS=--openssl-legacy-provider

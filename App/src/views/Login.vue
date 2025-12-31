@@ -1,11 +1,10 @@
 <template>
   <div class="login-container">
-    <div class="login-card">
+    <div class="login-modal">
       <div class="logo">
         <h1>NGO Logistics</h1>
         <p>Dashboard</p>
       </div>
-      
       <form @submit.prevent="handleSubmit" class="login-form" novalidate>
         <div class="form-group">
           <label for="email">Email Address</label>
@@ -14,16 +13,9 @@
             v-model="email"
             type="email"
             class="form-control"
-            :class="{ 'is-invalid': submitted && !emailValid }"
-            required
-            autocomplete="email"
             value="ngologisticsadmin@ngologistics.org"
           />
-          <div v-if="submitted && !emailValid" class="invalid-feedback">
-            Please enter a valid email address
-          </div>
         </div>
-        
         <div class="form-group">
           <label for="password">Password</label>
           <input
@@ -31,31 +23,12 @@
             v-model="password"
             type="password"
             class="form-control"
-            :class="{ 'is-invalid': submitted && !passwordValid }"
-            required
-            autocomplete="current-password"
           />
-          <div v-if="submitted && !passwordValid" class="invalid-feedback">
-            Password must be at least 6 characters
-          </div>
-          <div v-if="error" class="invalid-feedback">
-            {{ error }}
-          </div>
         </div>
-        
-        <button type="submit" class="btn btn-primary" :disabled="loading">
-          <span v-if="loading">
-            <i class="fas fa-spinner fa-spin"></i> Logging in...
-          </span>
-          <span v-else>
-            Login
-          </span>
+        <button type="submit" class="btn btn-primary">
+          Login
         </button>
       </form>
-      
-      <div class="footer">
-        <p>NGO Logistics Dashboard v1.0</p>
-      </div>
     </div>
   </div>
 </template>
@@ -65,51 +38,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-
 const email = ref('ngologisticsadmin@ngologistics.org')
 const password = ref('')
-const submitted = ref(false)
-const loading = ref(false)
-const error = ref(null)
 
-const emailValid = ref(true)
-const passwordValid = ref(true)
-
-const validateForm = () => {
-  emailValid.value = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())
-  passwordValid.value = password.value.trim().length >= 6
-  return emailValid.value && passwordValid.value
-}
-
-const handleSubmit = async () => {
-  submitted.value = true
-  
-  if (!validateForm()) {
-    return
-  }
-  
-  loading.value = true
-  error.value = null
-  
-  try {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
-    // Store user session
-    localStorage.setItem('ngol_user', JSON.stringify({
-      email: email.value,
-      role: 'admin',
-      token: 'demo_token_' + Date.now()
-    }))
-    
-    // Redirect to dashboard
-    router.push('/dashboard')
-  } catch (err) {
-    console.error('Login error:', err)
-    error.value = 'Invalid credentials. Please try again.'
-  } finally {
-    loading.value = false
-  }
+const handleSubmit = () => {
+  localStorage.setItem('ngol_token', 'mock_token')
+  router.push('/dashboard')
 }
 </script>
 
@@ -123,10 +57,10 @@ const handleSubmit = async () => {
   padding: 20px;
 }
 
-.login-card {
+.login-modal {
   background: white;
   border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   width: 100%;
   max-width: 450px;
   overflow: hidden;
@@ -164,7 +98,6 @@ label {
   margin-bottom: 8px;
   font-weight: 500;
   color: #333;
-  font-size: 0.95rem;
 }
 
 .form-control {
@@ -173,25 +106,6 @@ label {
   border: 2px solid #ddd;
   border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.3s;
-  box-sizing: border-box;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #4facfe;
-  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.2);
-}
-
-.form-control.is-invalid {
-  border-color: #ff4d4d;
-}
-
-.invalid-feedback {
-  color: #ff4d4d;
-  font-size: 0.85rem;
-  margin-top: 5px;
-  display: block;
 }
 
 .btn-primary {
@@ -204,42 +118,5 @@ label {
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 10px;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.footer {
-  text-align: center;
-  padding: 20px;
-  color: #666;
-  font-size: 0.9rem;
-  border-top: 1px solid #eee;
-  background: #f9f9f9;
-}
-
-@media (max-width: 480px) {
-  .login-card {
-    margin: 10px;
-  }
-  
-  .logo {
-    padding: 20px 15px;
-  }
-  
-  .login-form {
-    padding: 20px;
-  }
 }
 </style>

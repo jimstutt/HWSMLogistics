@@ -1,86 +1,12 @@
 <template>
   <div class="dashboard-container">
-    <Navigation />
-    <div class="main-content">
-      <div class="dashboard-header">
-        <h1>Dashboard</h1>
-        <button class="btn btn-primary refresh-btn" @click="refreshData">
-          <i class="fas fa-sync-alt"></i> Refresh
-        </button>
-      </div>
-      <!-- Stat cards — 80px height, NO Inventory Value -->
-      <div class="stats-grid">
-        <div class="stat-card" style="height: 80px">
-          <h3>156</h3><p>Total Shipments</p>
-        </div>
-        <div class="stat-card" style="height: 80px">
-          <h3>92%</h3><p>Delivery Rate</p>
-        </div>
-        <div class="stat-card" style="height: 80px">
-          <h3>3.2</h3><p>Avg Delivery (Days)</p>
-        </div>
-      </div>
-      <!-- Map with legend overlay -->
-      <div class="map-section">
-        <div class="map-controls-overlay">
-          <div class="map-type-buttons">
-            <button class="btn btn-outline-secondary btn-sm">Map</button>
-            <button class="btn btn-outline-secondary btn-sm">Satellite</button>
-          </div>
-          <div class="map-legend-overlay">
-            <h4>Map Legend</h4>
-            <div class="legend-items">
-              <div class="legend-item"><div class="legend-color warehouse"></div><span>Warehouses</span></div>
-              <div class="legend-item"><div class="legend-color in-transit"></div><span>In-Transit</span></div>
-              <div class="legend-item"><div class="legend-color delayed"></div><span>Delayed</span></div>
-              <div class="legend-item"><div class="legend-color pending"></div><span>Pending</span></div>
-            </div>
-          </div>
-        </div>
-        <MapView 
-          :warehouses="warehouses"
-          :shipments="shipments"
-          :show-warehouses="true"
-          :show-shipments="true"
-        />
-      </div>
-    </div>
+    <h1>Welcome to NGO Logistics Dashboard</h1>
+    <p>This is the dashboard page.</p>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import Navigation from '@/components/Navigation.vue'
-import MapView from '@/components/MapView.vue'
-
-const warehouses = ref([{ id: 1, location: 'Nairobi', capacity: 1000 }])
-const shipments = ref([{ id: 1, status: 'in-transit', destination: 'Dadaab' }])
-
-const refreshData = () => {
-  console.log('✅ Dashboard refreshed')
-}
-onMounted(() => refreshData())
-</script>
-
 <style scoped>
-.dashboard-container { display: flex; height: 100vh; background-color: #f8f9fa; }
-.main-content { flex: 1; padding: 20px; overflow: hidden; }
-.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.refresh-btn { font-size: 13px !important; padding: 0.375rem 0.75rem !important; }
-.stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap:15px; margin-bottom:15px; }
-.stat-card { background:white; padding:12px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); text-align:center; height:80px; }
-.stat-card h3 { font-size:20px; margin:0 0 3px 0; }
-.stat-card p { margin:0; color:#6c757d; font-size:12px; }
-.map-section { position: relative; background:white; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); height: calc(100% - 120px); }
-.map-controls-overlay { position: absolute; top:10px; left:10px; z-index:10; display:flex; flex-direction:column; gap:10px; }
-.map-type-buttons { display:flex; gap:6px; }
-.map-legend-overlay { background:rgba(255,255,255,0.92); padding:10px; border-radius:5px; border:1px solid #dee2e6; max-width:200px; font-size:12px; }
-.legend-items { display:flex; flex-direction:column; gap:4px; }
-.legend-item { display:flex; align-items:center; gap:6px; }
-.legend-color { width:12px; height:12px; border-radius:50%; border:2px solid white; }
-.legend-color.warehouse { background:#3498db; }
-.legend-color.in-transit { background:#2ecc71; }
-.legend-color.delayed { background:#e74c3c; }
-.legend-color.pending { background:#f39c12; }
-.map-section > *:not(.map-controls-overlay) { height: 100%; }
+.dashboard-container {
+  padding: 20px;
+}
 </style>
