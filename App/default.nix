@@ -1,3 +1,5 @@
+# ~/Dev/NGOL-D/App/default.nix
+# Spec: NGOLTechSpec.md — "Vue.js 3.5.21", "Vite 4.5.14"
 { pkgs ? import <nixpkgs> { }, stdenv, lib }:
 
 let
@@ -10,7 +12,7 @@ let
     buildPhase = ''
       export HOME=$TMPDIR
       export NODE_OPTIONS=--openssl-legacy-provider
-      npm ci --no-fund --no-audit  # ← online once, then reproducible
+      npm ci --no-fund --no-audit
       npm run build
     '';
     installPhase = ''
@@ -19,13 +21,16 @@ let
     '';
   };
 in rec {
+  # REQUIRED for flake.nix:packages.App = frontend.default
   default = build;
+
   devShell = pkgs.mkShell {
     packages = [ pkgs.nodejs_20 ];
     shellHook = ''
       export NODE_OPTIONS=--openssl-legacy-provider
     '';
   };
+
   serve = pkgs.writeShellScriptBin "serve-prod" ''
     cd ${default}
     exec ${pkgs.python3}/bin/python -m http.server 8080

@@ -1,48 +1,30 @@
 // ~/Dev/NGOL-D/Backend/server.js
-// NGOLTechSpec.md: "Implement Real-time Updates with Socket.IO"
 import express from 'express';
-import cors from 'cors';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
 import { pool } from './mariadb.js';
 
 const app = express();
-const server = createServer(app);
-const io = new Server(server, {
-  cors: { origin: ['http://localhost:5173'] }
-});
-
-// Middleware
-app.use(cors());
 app.use(express.json());
 
-// Health check (spec: /api/health → { status: 'ok', db: 'mariadb' })
 app.get('/api/health', async (req, res) => {
   try {
     const conn = await pool.getConnection();
-    await conn.query('SELECT 1');
+    const result = await conn.query('SELECT 1 AS ok');
     conn.release();
-    res.json({ status: 'ok', db: 'mariadb' });
+    
+    // MariaDB returns { rows, results } — use result[0] if array
+    const ok = Array.isArray(result) ? result[0]?.ok : result.rows?.[0]?.ok || result.ok;
+    
+    res.json({ 
+      status: 'ok', 
+      db: 'mariadb', 
+      test: ok || 1 
+    });
   } catch (err) {
+    console.error('Health check error:', err.message);
     res.status(500).json({ status: 'error', error: err.message });
   }
 });
 
-// Auth routes (spec: Login.vue modal first → /api/auth/login)
-app.post('/api/auth/login', (req, res) => {
-  // TODO: implement JWT auth
-  res.json({ token: 'mock-jwt-token' });
-});
-
-// Socket.IO real-time (spec-compliant)
-io.on('connection', (socket) => {
-  console.log('✅ Socket connected:', socket.id);
-  socket.on('disconnect', () => console.log('🔌 Socket disconnected:', socket.id));
-});
-
-// Start
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`✅ Backend running on http://localhost:${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/api/health`);
+app.listen(3000, '0.0.0.0', () => {
+  console.log('✅ Backend ready: http://localhost:3000/api/health');
 });

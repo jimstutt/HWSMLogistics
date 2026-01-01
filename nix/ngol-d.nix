@@ -1,7 +1,11 @@
+# ~/Dev/NGOL-D/nix/ngol-d.nix
+# Spec: NGOLTechSpec.md — NixOS implementation
 { config, pkgs, lib, ... }:
+
 let
   backend = (import ../. {}).packages.${pkgs.system}.Backend;
 in {
+  # MariaDB (spec: "MariaDB with proper indexing, transactions")
   services.mysql = {
     enable = true;
     package = pkgs.mariadb_106;
@@ -13,6 +17,7 @@ in {
     }];
   };
 
+  # Backend service
   systemd.services.ngol-d-backend = {
     description = "NGOL-D Backend";
     after = [ "mysql.service" ];

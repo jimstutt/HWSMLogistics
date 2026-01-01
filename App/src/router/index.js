@@ -1,22 +1,15 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../views/Login.vue'
-import Dashboard from '../views/Dashboard.vue'
+// ~/Dev/NGOL-D/App/src/router/index.js
+// Spec: "Ensure that localhost:5173 always loads a modal Login.vue form first"
+import { createRouter, createWebHistory } from 'vue-router';
+import Login from '../views/Login.vue';
 
 const routes = [
-  { path: '/', name: 'Login', component: Login, meta: { requiresAuth: false } },
-  { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } }
-]
+  { path: '/', component: Login, meta: { modal: true } }, // ← enforced first
+];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes
-})
+});
 
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('ngol_token')
-  if (to.meta.requiresAuth && !token) next('/')
-  else if (to.path === '/' && token) next('/dashboard')
-  else next()
-})
-
-export default router
+export default router;
