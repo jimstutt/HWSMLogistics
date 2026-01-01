@@ -1,61 +1,33 @@
-# ~/Dev/NGOL-D/App/default.nix
-# Minimal Vue 3 frontend (Nixpkgs 24.11 compatible)
 { pkgs ? import <nixpkgs> { }, stdenv, lib }:
+
 let
-  nodejs = pkgs.nodejs_22;
-  
-  # Build frontend with proper npm dependency management
-  build = pkgs.buildNpmPackage {
+  src = ./.;
+  build = stdenv.mkDerivation {
     pname = "ngol-d-frontend";
     version = "0.1.0";
-    
-    src = ./.;
-    
-    # CRITICAL: Use the CORRECT hash from the error message
-    npmDepsHash = "sha256-etNE/XNPi8UftQ0kA+4DrkTnp8qAMgct8LSrSdyKVB8=";
-    
+    src = src;
+    nativeBuildInputs = [ pkgs.nodejs_20 ];
     buildPhase = ''
+      export HOME=$TMPDIR
       export NODE_OPTIONS=--openssl-legacy-provider
-      echo "🚀 Building production artifacts..."
+      npm ci --no-fund --no-audit  # ← online once, then reproducible
       npm run build
     '';
-    
     installPhase = ''
       mkdir -p $out
       cp -r dist/* $out/
-      echo "✅ Build successful! Files installed to $out"
     '';
-    
-    # Essential for static assets
-    dontFixup = true;
-    
-    meta = {
-      description = "NGO Logistics Dashboard Vue 3 frontend";
-      platforms = lib.platforms.unix;
-    };
   };
 in rec {
-  # Primary output
   default = build;
-  
-  # Development shell
   devShell = pkgs.mkShell {
-    packages = [ nodejs pkgs.npm ];
+    packages = [ pkgs.nodejs_20 ];
     shellHook = ''
       export NODE_OPTIONS=--openssl-legacy-provider
-      echo "✅ NGOL-D Frontend Dev Shell (npm)"
-      echo "   Commands:"
-      echo "     npm install   → Install dependencies"
-      echo "     npm run dev   → Start dev server (port 5173)"
-      echo "     npm run build → Build production artifacts"
     '';
   };
-  
-  # Production server
   serve = pkgs.writeShellScriptBin "serve-prod" ''
     cd ${default}
-    echo "🚀 Serving NGOL-D frontend from ${default}"
-    echo "   Access at: http://localhost:8080"
     exec ${pkgs.python3}/bin/python -m http.server 8080
   '';
 }
