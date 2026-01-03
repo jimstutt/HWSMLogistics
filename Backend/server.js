@@ -1,5 +1,5 @@
 // ~/Dev/NGOL-D/Backend/server.js
-// Spec: NGOLTechSpec.md — Production, Socket.IO, MariaDB
+// Spec: NGOLTechSpec.md — MariaDB, Socket.IO, production-ready
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -8,26 +8,21 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { pool } from './mariadb.js';
 import authRoutes from './routes/auth.js';
-import shipmentsRoutes from './routes/shipments.js';
-import inventoryRoutes from './routes/inventory.js';
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
-  cors: { origin: ['http://localhost:8080', 'http://localhost:5173'] },
-  transports: ['websocket']
+  cors: { origin: ['http://localhost:8080', 'http://localhost:5173'] }
 });
 
-// Production middleware
-app.use(helmet());
+// Middleware (spec compliance)
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(compression());
 app.use(cors({ origin: ['http://localhost:8080', 'http://localhost:5173'] }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/shipments', shipmentsRoutes);
-app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -35,7 +30,7 @@ app.get('/api/health', async (req, res) => {
     const conn = await pool.getConnection();
     await conn.query('SELECT 1');
     conn.release();
-    res.json({ status: 'ok', db: 'mariadb', env: process.env.NODE_ENV });
+    res.json({ status: 'ok', db: 'mariadb', env: process.env.NODE_ENV || 'dev' });
   } catch (err) {
     res.status(500).json({ status: 'error', error: err.message });
   }
@@ -43,25 +38,10 @@ app.get('/api/health', async (req, res) => {
 
 // Socket.IO (spec: Real-time Updates)
 io.on('connection', (socket) => {
-  console.log('✅ Socket.IO connected (production)');
-
-  socket.on('disconnect', () => {
-    console.log('🔌 Socket.IO disconnected');
-  });
+  console.log('✅ Socket.IO connected');
 });
 
-// Graceful shutdown
-const shutdown = async () => {
-  console.log('🛑 Shutting down...');
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(1), 5000);
-};
-
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
-
-// Start
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Backend ${process.env.NODE_ENV || 'dev'}: http://localhost:${PORT}`);
+  console.log(`✅ Backend: http://localhost:${PORT}`);
 });
