@@ -1,27 +1,18 @@
-// /home/jim/Dev/NGOLogisticsD/App/vite.config.js
+// ~/Dev/NGOL-D/App/vite.config.js
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  },
-  build: {
-    target: 'es2022',  // ✅ enables top-level await
-    polyfillDynamicImport: false
-  },
   server: {
     port: 5173,
-    host: true,
+    host: 'localhost',
+    // ✅ Proxy /api → localhost:3000 (avoids CORS, allows relative fetch)
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: false
+        secure: false,
       }
     }
   }

@@ -1,44 +1,47 @@
 #!/usr/bin/env bash
-# ~/Dev/NGOL-D/start-servers.sh
-# Starts full NGOL-D stack (MariaDB + Backend + Frontend)
+# ~/Dev/NGOL-D/scripts/start-servers.sh
 set -euo pipefail
 
-# Start MariaDB
-echo "🚀 Starting NGOL-D Full Stack..."
-./start-mariadb.sh &
-MARIADB_SETUP_PID=$!
+echo "🚀 Starting NGOL-D Full Stack"
 
-# Wait for MariaDB
-wait $MARIADB_SETUP_PID
+# Clear frontend auth state (enforce Login.vue first)
+rm -f ~/.config/NGOL-D/* 2>/dev/null || true
+echo "localStorage.clear();" | sqlite3 ~/.config/chromium/Default/Local\ Storage/leveldb/*.ldb 2>/dev/null || true
 
-# Start Backend (spec: localhost:3000/api/health → { status: 'ok', db: 'mariadb' })
-echo "📡 Starting Backend..."
+# 1. MariaDB (port 3306)
+./scripts/start-mariadb.sh
+
+# 2. Backend — explicit env (port 3306)
 cd Backend
-nix develop --command node server.js &
+nix develop --command bash -c "
+  export MARIADB_HOST=\${MARIADB_HOST:-127.0.0.1}
+  export MARIADB_PORT=3306   # ← enforced
+  export MARIADB_USER=\${MARIADB_USER:-ngol}
+  export MARIADB_PASSWORD=\${MARIADB_PASSWORD:-ngol}
+  export MARIADB_DATABASE=\${MARIADB_DATABASE:-NGOL_D}
+  node server.js
+" &
 BACKEND_PID=$!
 cd ..
 
-# Wait for backend health check
-for i in {1..15}; do
+# 3. Wait for health
+for i in {1..30}; do
   if curl -sf http://localhost:3000/api/health | grep -q '"status":"ok"'; then
+    echo "✅ Backend healthy"
     break
   fi
+  echo "⏳ Waiting... ($i/30)"
   sleep 1
 done
 
-# Start Frontend (spec: localhost:5173 → Login.vue modal first)
-echo "🌐 Starting Frontend..."
+# 4. Frontend — clear Vite cache
 cd App
+rm -rf node_modules/.vite
 nix develop --command npm run dev &
 FRONTEND_PID=$!
 cd ..
 
-# Verification
-echo -e "\n✅ NGOL-D Full Stack Ready:"
-echo "   🔒 Login: http://localhost:5173 (Login.vue modal first)"
+echo -e "\n✅ Ready:"
+echo "   🔒 Login: http://localhost:5173 (Login.vue first)"
 echo "   🏥 Health: http://localhost:3000/api/health"
-echo "   📊 Dashboard: http://localhost:5173 (after login)"
-echo "   📱 Real-time: Socket.IO updates enabled"
-echo ""
-echo "   🔥 Ctrl+C to stop all servers"
 wait $BACKEND_PID $FRONTEND_PID 2>/dev/null || true

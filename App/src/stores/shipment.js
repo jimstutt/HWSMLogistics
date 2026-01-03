@@ -1,28 +1,22 @@
-// src/stores/shipment.js
-import { defineStore } from 'pinia';
+// ~/Dev/NGOL-D/App/src/stores/shipment.js
+// Spec: NGOLTechSpec.md — Real-time Updates with Socket.IO
+import { ref } from 'vue';
+import { io } from 'socket.io-client';
 
-export const useShipmentStore = defineStore('shipment', {
-  state: () => ({
-    warehouses: [],
-    shipments: [],
-    inventory: []
-  }),
-  actions: {
-    async fetchWarehouses() {
-      this.warehouses = [
-        { id: 1, name: 'Nairobi', capacity: 1000, location: 'Nairobi' },
-        { id: 2, name: 'Mombasa', capacity: 800, location: 'Mombasa' }
-      ];
-    },
-    async fetchShipments() {
-      this.shipments = [
-        { id: 1, source: 'Nairobi', destination: 'Dadaab', status: 'in-transit' }
-      ];
-    },
-    async fetchInventory() {
-      this.inventory = [
-        { id: 1, warehouse: 'Nairobi', item: 'Food', quantity: 1000 }
-      ];
-    }
-  }
+const socket = io('http://localhost:3000', {
+  transports: ['websocket'], // ← avoids polling 400
+  path: '/socket.io',        // ← explicit path
 });
+
+const shipments = ref([]);
+
+socket.on('connect', () => {
+  console.log('✅ Socket.IO connected');
+});
+
+socket.on('shipmentUpdate', (data) => {
+  console.log('📦 Shipment update:', data);
+  // Update local state
+});
+
+export { socket, shipments };
