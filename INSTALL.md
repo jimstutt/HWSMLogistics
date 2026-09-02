@@ -1,40 +1,56 @@
-# NGOL-D Installation — Ubuntu + Home-Manager
+# Installation Instructions
 
-## 1. Install Nix
-sh <(curl -L https://nixos.org/nix/install) --no-daemon
-mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+## Prerequisites
 
-## 2. Install Home-Manager
-nix-shell -p nixFlakes --run "nix run github:nix-community/home-manager -- switch --flake .#$(whoami)"
+- **Nix Package Manager**: Required for reproducible builds and dependency management.
+- **MariaDB**: The strictly supported database backend.
 
-## 3. MariaDB
-sudo apt update && sudo apt install mariadb-server
-sudo systemctl enable --now mariadb
-sudo mysql_secure_installation
+## 1. Database Setup
 
-## 4. DB Setup
-sudo mysql -e "
-  CREATE DATABASE IF NOT EXISTS ngol_d;
-  CREATE USER IF NOT EXISTS 'ngol'@'localhost' IDENTIFIED BY 'ngol-secret';
-  GRANT ALL PRIVILEGES ON ngol_d.* TO 'ngol'@'localhost';
-  FLUSH PRIVILEGES;
-"
+Ensure MariaDB is installed and running on your system. On NixOS, enable it via your `configuration.nix`.
+You can inspect or initialize the database schema using Nix:
 
-## 5. Build
-git clone https://github.com/jimstutt/NGOL-D.git ~/Dev/NGOL-D
-cd ~/Dev/NGOL-D
-git add . && git commit -m "build" || true
-nix build .#ngol-d-backend .#ngol-d-frontend
+```bash
+nix shell nixpkgs#mariadb --run "mariadb -u root project_db"
+```
 
-## 6. Home-Manager Config
-# Add to ~/.config/home-manager/home.nix:
-#   imports = [ ./ngol-d-service.nix ];
+## 2. Entering the Development Environment
 
-## 7. Deploy
-home-manager switch
-systemctl --user daemon-reload
-systemctl --user enable --now ngol-d-backend
+Use Nix to load all required build tools (GHC, Cabal, Node.js, etc.) into your shell:
 
-## 8. Frontend (dev)
-cd ~/Dev/NGOL-D/App && npm install && npm run dev
+```bash
+nix develop
+```
+
+## 3. Running the Backend
+
+The backend is a Haskell Servant application. You can build and run it directly via the Nix flake:
+
+```bash
+nix run .#backend
+```
+
+This will compile the Haskell source and start the Servant server on port `8080`, connecting to your local MariaDB instance.
+
+## 4. Running the Frontend
+
+The frontend utilizes TypeScript and Vite. While inside the `nix develop` shell, navigate to the frontend directory to start the development server:
+
+```bash
+cd frontend
+npm run dev
+```
+
+*(Note: All environment dependencies are provided by Nix. Do not use global package managers like `apt` or global `npm install`.)*
+
+## 5. Building Artifacts
+
+To build specific outputs defined in `flake.nix` without running them:
+
+```bash
+# Build the Servant backend
+nix build .#backend
+
+# Build the Wasm frontend target
+nix build .#frontend-wasm
+```

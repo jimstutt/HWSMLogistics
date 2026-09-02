@@ -1,0 +1,12 @@
+packages:
+  common
+  backend
+  frontend-wasm
+
+-- Allow cabal to resolve compatible versions for GHC 9.14
+-- Avoid strict constraints on boot libraries like text or template-haskell
+
+-- Disable documentation and tests to speed up Wasm build
+documentation: False
+tests: False
+benchmarks: False
