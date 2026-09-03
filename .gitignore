@@ -178,3 +178,11 @@ vite.config.ts.timestamp-*
 
 Backend/node_modules/
 >>>>>>> a6f7a6f (Initial)
+
+# Local build artifacts and secrets
+frontend/index.html
+.env
+data/
+dist-newstyle/
+*.sqlite
+*.sock
