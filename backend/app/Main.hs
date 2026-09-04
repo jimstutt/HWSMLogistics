@@ -1,18 +1,25 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import Backend (app)
+import Backend.Ws (newWsState, wsApp)
 import Network.Wai.Handler.Warp (run)
-import qualified Database.MySQL.Simple as MySQL
+import Network.Wai.Handler.WebSockets (websocketsOr)
+import Network.WebSockets (defaultConnectionOptions)
+import System.Environment (getEnv)
+import DB (initDB)
 
 main :: IO ()
 main = do
-  putStrLn "[HRSM] Backend connecting to MariaDB (project_db)..."
-  conn <- MySQL.connect MySQL.defaultConnectInfo 
-    { MySQL.connectDatabase = "project_db"
-    , MySQL.connectUser = "hrsm_user"
-    , MySQL.connectPassword = "hrsm_password"
-    , MySQL.connectHost = "127.0.0.1" -- Force TCP to bypass unix_socket auth
-    }
-  
-  putStrLn "[HRSM] Backend starting on port 8080..."
-  run 8080 (app conn)
+    port <- read <$> getEnv "PORT" :: IO Int
+    putStrLn $ "Starting backend on port " ++ show port
+    
+    -- Initialize Database and WebSocket state
+    conn <- initDB
+    wsState <- newWsState
+    
+    -- Wrap the Servant API with the WebSocket handler
+    let fullApp = websocketsOr defaultConnectionOptions (wsApp wsState) (app conn wsState)
+    
+    run port fullApp

@@ -28,27 +28,23 @@ jobs:
           
       - name: Run checks
         run: |
-          nix run .#check || true
+          mkdir -p data
+          nix run .#check
           
       - name: Start servers & smoke-test
         run: |
-          # Start servers in the background
-          nix run .#start-servers &
+          mkdir -p data
+          # Build WASM first so start-servers can find it
+          nix develop --command bash -c "wasm32-wasi-cabal build exe:frontend"
+          
+          timeout 60s nix run .#start-servers &
           SERVER_PID=$!
           
-          # Wait for backend to be ready
           echo "Waiting for servers to start..."
-          for i in {1..20}; do
-            if curl -s -f http://localhost:3000/api/health >/dev/null; then
-              echo "Backend is up!"
-              break
-            fi
-            sleep 2
-          done
+          sleep 15
           
           # Smoke tests
           curl --fail http://localhost:5173 || exit 1
           curl --fail http://localhost:3000/api/health || exit 1
           
-          # Cleanup
           kill $SERVER_PID || true

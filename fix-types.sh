@@ -1,3 +1,13 @@
+#!/usr/bin/env bash
+set -e
+
+# Target the uploaded txt file as requested
+TARGET_FILE="Tyoes.hs.txt"
+ACTUAL_SOURCE="common/src/Common/Types.hs"
+
+echo "📝 Overwriting $TARGET_FILE with corrected Haskell syntax..."
+
+cat << 'EOF' > "$TARGET_FILE"
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
@@ -69,10 +79,7 @@ data Inventory = Inventory
 data Shipment = Shipment
   { shipmentId :: Int
   , sourceWarehouse :: Maybe Int
-  , description :: Text
-  , quantity :: Int
   , destination :: Text
-  , transportProvider :: Maybe Text
   , status :: Text
   , createdAt :: Maybe UTCTime
   } deriving stock (Show, Generic)
@@ -95,3 +102,9 @@ data HealthResponse = HealthResponse
   , healthDb :: Text
   } deriving stock (Show, Generic)
     deriving anyclass (ToJSON, FromJSON, ToSchema)
+EOF
+
+echo "✅ Successfully fixed missing closing brackets and added ToSchema deriving clauses!"
+echo ""
+echo "💡 Next Step: Copy this corrected file to your actual source directory:"
+echo "   cp $TARGET_FILE $ACTUAL_SOURCE"

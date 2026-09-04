@@ -1,5 +1,0 @@
-{
-  "exec": "node server.js",
-  "watch": ["*.js", "*.json", "models/*.js", "routes/*.js", "middleware/*.js", "config/*.js", "sockets/*.js"],
-  "ext": "js,json"
-}
