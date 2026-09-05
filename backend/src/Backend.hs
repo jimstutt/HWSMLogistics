@@ -44,7 +44,9 @@ server conn wsState =
     
     loginHandler :: LoginRequest -> Handler AuthResponse
     loginHandler req = do
+      liftIO $ putStrLn $ "🔑 Login attempt: email=" ++ show (loginEmail req) ++ ", pw=" ++ show (loginPassword req)
       mu <- liftIO $ authenticate conn (loginEmail req) (loginPassword req)
+      liftIO $ putStrLn $ "👤 DB Result: " ++ show mu
       case mu of
         Just u  -> return $ AuthResponse "jwt-token-placeholder" u
         Nothing -> throwError err401 { errBody = "Invalid credentials" }
