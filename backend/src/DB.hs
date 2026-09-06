@@ -1,3 +1,4 @@
+{-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedRecordDot #-}
@@ -9,6 +10,7 @@ import Database.MySQL.Simple
 import Database.MySQL.Simple.Types (Only(..))
 import Data.Int (Int64)
 import Data.Text (Text)
+import Data.Time
 import Control.Monad (void)
 import Data.Maybe (listToMaybe)
 
@@ -25,13 +27,13 @@ initDB = connect defaultConnectInfo
 
 getUsers :: Connection -> IO [User]
 getUsers conn = do
-  rows <- query_ conn "SELECT id, first_name, second_name, email, organisation, role FROM users"
-  return [ User (fromIntegral i) fn sn em org rl | (i::Int64, fn, sn, em, org, rl) <- rows ]
+  rows <- query_ conn "SELECT id, first_name, second_name, email, password_hash, organisation, role FROM users"
+  return [ User (fromIntegral i) fn sn em ph org rl | (i::Int64, fn, sn, em, ph, org, rl) <- rows ]
 
 createUser :: Connection -> User -> IO User
 createUser conn u = do
-  execute conn "INSERT INTO users (first_name, second_name, email, organisation, role) VALUES (?, ?, ?, ?, ?)"
-    (u.firstName, u.secondName, u.email, u.organisation, u.role)
+  execute conn "INSERT INTO users (first_name, second_name, email, password_hash, organisation, role) VALUES (?, ?, ?, ?, ?, ?)"
+    (u.firstName, u.secondName, u.email, u.passwordHash, u.organisation, u.role)
   [Only (nid :: Int64)] <- query_ conn "SELECT LAST_INSERT_ID()"
   return $ u { userId = fromIntegral nid }
 
@@ -40,8 +42,8 @@ deleteUser conn uid = void $ execute conn "DELETE FROM users WHERE id=?" (Only (
 
 getWarehouses :: Connection -> IO [Warehouse]
 getWarehouses conn = do
-  rows <- query_ conn "SELECT id, location, capacity, transport, contact_email, contact_phone FROM warehouses"
-  return [ Warehouse (fromIntegral i) loc (fromIntegral cap) tr ce cp | (i::Int64, loc, cap::Int64, tr, ce, cp) <- rows ]
+  rows <- query_ conn "SELECT id, location, capacity, transport, contact_email, contact_phone FROM warehouses" :: IO [(Int64, Text, Int64, Maybe Text, Maybe Text, Maybe Text)]
+  return [ Warehouse (fromIntegral i) loc (fromIntegral cap) tr ce cp | (i, loc, cap, tr, ce, cp) <- rows ]
 
 createWarehouse :: Connection -> Warehouse -> IO Warehouse
 createWarehouse conn w = do
@@ -85,8 +87,8 @@ deletePartner conn pid = void $ execute conn "DELETE FROM partners WHERE id=?" (
 
 getInventory :: Connection -> IO [Inventory]
 getInventory conn = do
-  rows <- query_ conn "SELECT id, warehouse_id, description, quantity, transport_provider FROM inventory"
-  return [ Inventory (fromIntegral i) (fmap fromIntegral wid) d (fromIntegral q) tp | (i::Int64, wid::Maybe Int64, d, q::Int64, tp) <- rows ]
+  rows <- query_ conn "SELECT id, warehouse_id, description, quantity, transport_provider FROM inventory" :: IO [(Int64, Maybe Int64, Text, Int64, Maybe Text)]
+  return [ Inventory (fromIntegral i) (fmap fromIntegral wid) d (fromIntegral q) tp | (i, wid, d, q, tp) <- rows ]
 
 createInventory :: Connection -> Inventory -> IO Inventory
 createInventory conn inv = do
@@ -105,8 +107,8 @@ decreaseInventory conn wid desc qty = do
 
 getShipments :: Connection -> IO [Shipment]
 getShipments conn = do
-  rows <- query_ conn "SELECT id, source_warehouse, description, quantity, destination, transport_provider, status, created_at FROM shipments"
-  return [ Shipment (fromIntegral i) (fmap fromIntegral sw) d (fromIntegral q) dest tp s ca | (i::Int64, sw::Maybe Int64, d, q::Int64, dest, tp, s, ca) <- rows ]
+  rows <- query_ conn "SELECT id, source_warehouse, description, quantity, destination, transport_provider, status, created_at FROM shipments" :: IO [(Int64, Maybe Int64, Text, Int64, Text, Maybe Text, Text, Maybe UTCTime)]
+  return [ Shipment (fromIntegral i) (fmap fromIntegral sw) d (fromIntegral q) dest tp s ca | (i, sw, d, q, dest, tp, s, ca) <- rows ]
 
 createShipment :: Connection -> Shipment -> IO Shipment
 createShipment conn s = do
@@ -120,5 +122,5 @@ deleteShipment conn sid = void $ execute conn "DELETE FROM shipments WHERE id=?"
 
 authenticate :: Connection -> Text -> Text -> IO (Maybe User)
 authenticate conn em pw = do
-  rows <- query conn "SELECT id, first_name, second_name, email, organisation, role FROM users WHERE email=? AND password_hash=?" (em, pw)
-  return $ listToMaybe [ User (fromIntegral i) fn sn e o r | (i::Int64, fn, sn, e, o, r) <- rows ]
+  rows <- query conn "SELECT id, first_name, second_name, email, password_hash, organisation, role FROM users WHERE email=? AND password_hash=?" (em, pw)
+  return $ listToMaybe [ User (fromIntegral i) fn sn e ph o r | (i::Int64, fn, sn, e, ph, o, r) <- rows ]

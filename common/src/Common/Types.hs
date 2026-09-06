@@ -23,6 +23,7 @@ data User = User
   , firstName :: Text
   , secondName :: Text
   , email :: Text
+  , passwordHash :: Text
   , organisation :: Text
   , role :: Text
   } deriving stock (Show, Generic)
