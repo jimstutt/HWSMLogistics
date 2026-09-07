@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HWSM Logistics - Restored</title>
+</head>
+<body>
+    <h1>System Restored</h1>
+    <p>If you see this, the HTML tags are back!</p>
+    <button onclick="doLogin()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Test Login</button>
+    
+    <script>
+        function doLogin() {
+            alert("✅ doLogin is defined and working!");
+            fetch('http://localhost:3000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ loginEmail: 'admin@hwsm.com', loginPassword: 'admin' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    alert("✅ Login successful! Reloading...");
+                    location.reload();
+                } else {
+                    alert("❌ Invalid credentials");
+                }
+            })
+            .catch(err => alert("❌ Error: " + err));
+        }
+    </script>
+</body>
+</html>
