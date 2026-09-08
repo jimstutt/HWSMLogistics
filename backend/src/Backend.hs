@@ -22,6 +22,7 @@ server conn wsState =
   :<|> loginHandler
   :<|> getShipmentsH
   :<|> createShipmentH
+  :<|> updateShipmentH  -- ADDED HANDLER
   :<|> deleteShipmentH
   :<|> getInventoryH
   :<|> createInventoryH
@@ -63,6 +64,12 @@ server conn wsState =
         Nothing  -> return ()
       liftIO $ broadcast wsState newS
       return newS
+
+    updateShipmentH :: Int -> Shipment -> Handler Shipment
+    updateShipmentH sid s = do
+      updated <- liftIO $ updateShipment conn sid s
+      liftIO $ broadcast wsState updated
+      return updated
     
     deleteShipmentH :: Int -> Handler Text
     deleteShipmentH sid = liftIO (deleteShipment conn sid) >> return "Deleted"

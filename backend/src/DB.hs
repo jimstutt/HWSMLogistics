@@ -117,6 +117,12 @@ createShipment conn s = do
   [Only (nid :: Int64)] <- query_ conn "SELECT LAST_INSERT_ID()"
   return $ s { shipmentId = fromIntegral nid }
 
+updateShipment :: Connection -> Int -> Shipment -> IO Shipment
+updateShipment conn sid s = do
+  void $ execute conn "UPDATE shipments SET source_warehouse=?, description=?, quantity=?, destination=?, transport_provider=?, status=? WHERE id=?"
+    (s.sourceWarehouse, s.description, s.quantity, s.destination, s.transportProvider, s.status, fromIntegral sid :: Int64)
+  return $ s { shipmentId = fromIntegral sid }
+
 deleteShipment :: Connection -> Int -> IO ()
 deleteShipment conn sid = void $ execute conn "DELETE FROM shipments WHERE id=?" (Only (fromIntegral sid :: Int64))
 

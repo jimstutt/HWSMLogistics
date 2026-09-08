@@ -13,6 +13,7 @@ type API =
   :<|> "api" :> "auth" :> "login" :> ReqBody '[JSON] LoginRequest :> Post '[JSON] AuthResponse
   :<|> "api" :> "shipments" :> Get '[JSON] [Shipment]
   :<|> "api" :> "shipments" :> ReqBody '[JSON] Shipment :> Post '[JSON] Shipment
+  :<|> "api" :> "shipments" :> Capture "id" Int :> ReqBody '[JSON] Shipment :> Put '[JSON] Shipment
   :<|> "api" :> "shipments" :> Capture "id" Int :> Delete '[JSON] Text
   :<|> "api" :> "inventory" :> Get '[JSON] [Inventory]
   :<|> "api" :> "inventory" :> ReqBody '[JSON] Inventory :> Post '[JSON] Inventory
