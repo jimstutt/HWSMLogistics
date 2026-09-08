@@ -53,23 +53,26 @@
     </div>
     <div id="main">
         <div id="dashboard" class="page active"><h2>Dashboard</h2><div id="map"></div></div>
-	<div id="shipments" class="page">
+        <div id="shipments" class="page">
             <h2>Shipments & Inventory</h2>
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <h3 style="margin-top:0;">Shipments</h3>
                     <button class="btn btn-success" onclick="showModal('ship-add')">Add Shipment</button>
                     <button class="btn" onclick="loadShipments()">Refresh</button>
+                    <button class="btn btn-warning" onclick="exportCSV('shipments')">Export CSV</button>
                     <div id="ship-list" style="margin-top:10px; max-height: 65vh; overflow-y: auto;"></div>
                 </div>
                 <div style="flex: 1; min-width: 300px; background: var(--card-bg); padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <h3 style="margin-top:0;">Inventory</h3>
                     <button class="btn btn-success" onclick="showModal('inv-add')">Add Inventory</button>
                     <button class="btn" onclick="loadInventory()">Refresh</button>
+                    <button class="btn btn-warning" onclick="exportCSV('inventory')">Export CSV</button>
                     <div id="inv-list" style="margin-top:10px; max-height: 65vh; overflow-y: auto;"></div>
                 </div>
             </div>
         </div>
+	
         <div id="reports" class="page">
             <h2>Analytics & Reports</h2>
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -280,6 +283,60 @@
             }
         }
 	
+        async function exportCSV(type) {
+            let data = [];
+            let headers = [];
+            let filename = '';
+
+            if (type === 'shipments') {
+                data = await (await fetch(API + '/shipments')).json();
+                headers = ['ID', 'Description', 'Quantity', 'Destination', 'Status', 'Transport Provider', 'Source Warehouse ID'];
+                filename = 'shipments_export.csv';
+                data = data.map(s => [
+                    s.shipmentId || s.id,
+                    s.description,
+                    s.quantity,
+                    s.destination,
+                    s.status,
+                    s.transportProvider || '',
+                    s.sourceWarehouse || ''
+                ]);
+            } else if (type === 'inventory') {
+                const inv = await (await fetch(API + '/inventory')).json();
+                const wh = await (await fetch(API + '/warehouses')).json();
+                const whMap = {}; wh.forEach(w => whMap[w.warehouseId || w.id] = w.location);
+                
+                headers = ['Warehouse', 'Description', 'Quantity', 'Transport Provider'];
+                filename = 'inventory_export.csv';
+                data = inv.map(i => [
+                    whMap[i.warehouseId] || 'Unknown',
+                    i.description,
+                    i.quantity,
+                    i.transportProvider || ''
+                ]);
+            }
+
+            if (data.length === 0) {
+                alert('No data to export.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += headers.join(",") + "\n";
+            
+            data.forEach(rowArray => {
+                let row = rowArray.map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }	
         async function loadShipments() {
             const d = await (await fetch(API + '/shipments')).json();
             document.getElementById('ship-list').innerHTML = d.map(s => {
@@ -294,42 +351,8 @@
                     </div>
                 </div>`;
             }).join('');
-		}
+	}
 
-        async function markDelivered(id) {
-            if (!id || id === 'undefined') {
-                alert("Error: Shipment ID is missing.");
-                return;
-            }
-            const sh = await (await fetch(API + '/shipments')).json();
-            const s = sh.find(x => (x.shipmentId || x.id) === id);
-            if(!s) return;
-            
-            const payload = {
-                shipmentId: parseInt(id),
-                sourceWarehouse: s.sourceWarehouse,
-                description: s.description,
-                quantity: s.quantity,
-                destination: s.destination,
-                transportProvider: s.transportProvider,
-                status: 'Delivered',
-                createdAt: null
-            };
-            
-            const res = await fetch(API + '/shipments/' + id, { 
-                method: 'PUT', 
-                headers: {'Content-Type':'application/json'}, 
-                body: JSON.stringify(payload) 
-            });
-            
-            if(res.ok) {
-                loadShipments(); 
-                initMap();
-            } else {
-                const errText = await res.text();
-                alert('Failed to update status. Backend response: ' + res.status + '\n' + errText);
-            }
-        }
         async function markDelivered(id) {
             if (!id || id === 'undefined') {
                 alert("Error: Shipment ID is missing.");
